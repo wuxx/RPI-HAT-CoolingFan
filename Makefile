@@ -8,7 +8,7 @@ CFLAGS = -Wall
 
 all: 
 	$(CC) $(CFLAGS) -c main.c -o main.o
-	$(CC) main.o -lwiringPi -o main
+	$(CC) main.o -lwiringPi -lpthread -o main
 
 clean:	
 	-rm -f *.o

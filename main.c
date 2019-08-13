@@ -3,6 +3,16 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 
 #include <wiringPi.h>
 
@@ -42,7 +52,7 @@ struct ssd_map {
     uint8_t DP;
 };
 
-struct ssd_map ssd_table[10] = {
+struct ssd_map ssd_table[16] = {
     /* 0 */ {.A = 1, .B = 1, .C = 1, .D = 1, .E = 1, .F = 1, .G = 0, .DP = 0},
     /* 1 */ {.A = 0, .B = 1, .C = 1, .D = 0, .E = 0, .F = 0, .G = 0, .DP = 0},
     /* 2 */ {.A = 1, .B = 1, .C = 0, .D = 1, .E = 1, .F = 0, .G = 1, .DP = 0},
@@ -53,6 +63,13 @@ struct ssd_map ssd_table[10] = {
     /* 7 */ {.A = 1, .B = 1, .C = 1, .D = 0, .E = 0, .F = 0, .G = 0, .DP = 0},
     /* 8 */ {.A = 1, .B = 1, .C = 1, .D = 1, .E = 1, .F = 1, .G = 1, .DP = 0},
     /* 9 */ {.A = 1, .B = 1, .C = 1, .D = 1, .E = 0, .F = 1, .G = 1, .DP = 0},
+
+    /* A */ {.A = 1, .B = 1, .C = 1, .D = 0, .E = 1, .F = 1, .G = 1, .DP = 0},
+    /* B */ {.A = 1, .B = 1, .C = 1, .D = 1, .E = 1, .F = 1, .G = 1, .DP = 0},
+    /* C */ {.A = 1, .B = 0, .C = 0, .D = 1, .E = 1, .F = 1, .G = 0, .DP = 0},
+    /* D */ {.A = 1, .B = 1, .C = 1, .D = 1, .E = 1, .F = 1, .G = 0, .DP = 0},
+    /* E */ {.A = 1, .B = 0, .C = 0, .D = 1, .E = 1, .F = 1, .G = 1, .DP = 0},
+    /* F */ {.A = 1, .B = 0, .C = 0, .D = 0, .E = 1, .F = 1, .G = 1, .DP = 0},
 };
 
 /* 4 digital data */
@@ -65,6 +82,24 @@ void msleep(unsigned int ms)
     int i;
     for(i = 0; i < ms; i++) {
         usleep(i * 1000);
+    }
+}
+
+#define get_bit(x, bit_index) ((x >> bit_index) & 0x1)
+
+void set_bit(uint8_t *x, uint8_t bit_index, uint8_t b)
+{
+    uint8_t _x;
+    uint8_t bit_mask;
+    _x = *x;
+    if (get_bit(_x, bit_index) != b) {
+        if (b == 0) {
+            bit_mask = ~(0x1 << bit_index);
+            *x = (_x) & bit_mask;
+        } else {    /* b == 1 */
+            bit_mask = (0x1 << bit_index);
+            *x = (_x) | bit_mask;
+        }
     }
 }
 
@@ -140,124 +175,11 @@ int8_t hc595_init()
     return 0;
 }
 
-/* AT28C256 */
-void at28_set_addr(uint16_t addr)
-{
-    uint8_t b;
-    int8_t i;
 
-    hc595_set_rclk(0);
-
-    for(i = 15; i >= 0; i--) {
-        if (addr & (0x1 << i)) {
-            b = 1;
-        } else {
-            b = 0;
-        }
-
-        //printf("%d\n", b);
-
-        hc595_set_clk(0);
-        hc595_set_ser(b);
-        msleep(3);
-        hc595_set_clk(1);
-        msleep(3);
-    }
-
-    msleep(2);
-    hc595_set_rclk(1);
-
-}
-
-uint8_t at28_read(uint16_t addr)
-{
-#if 0
-    int8_t i;
-    uint8_t data = 0;
-
-    at28_set_ce(0);
-    at28_set_oe(0);
-    msleep(1);
-
-    at28_set_addr(addr);
-    msleep(1);
-
-    for(i = 7; i >= 0; i--) {
-        data = data << 1;
-        data |= gpio_read(pgi_at28_io[i]->base_addr, pgi_at28_io[i]->index);
-    }
-
-    at28_set_ce(1);
-    at28_set_oe(1);
-
-    return data;
-#endif
-    return 0;
-}
-
-void at28_write(uint16_t addr, uint8_t data)
-{
-#if 0
-    uint8_t i;
-
-    at28_set_addr(addr);
-
-    for(i = 0; i < 8; i++) {
-
-        gpio_init(pgi_at28_io[i]->base_addr, pgi_at28_io[i]->index, 1); /* output */
-
-        if (data & (0x1 << i)) {
-            gpio_write(pgi_at28_io[i]->base_addr, pgi_at28_io[i]->index, 1);
-        } else {
-            gpio_write(pgi_at28_io[i]->base_addr, pgi_at28_io[i]->index, 0);
-        }
-    }
-
-    msleep(1);
-
-    at28_set_oe(1); /* output high-Z */
-    at28_set_ce(0);
-    at28_set_we(0);
-
-    /* write */
-    msleep(4);
-
-    at28_set_ce(0);
-    at28_set_we(1);
-
-    /* write finish. */
-
-    /* restore to default (read state) */
-    for(i = 0; i < 8; i++) {
-        gpio_init(pgi_at28_io[i]->base_addr, pgi_at28_io[i]->index, 0);
-    }
-#endif
-}
-
-
-
-#define get_bit(x, bit_index) ((x >> bit_index) & 0x1)
-
-void set_bit(uint8_t *x, uint8_t bit_index, uint8_t b)
-{
-    uint8_t _x;
-    uint8_t bit_mask;
-    _x = *x;
-    if (get_bit(_x, bit_index) != b) {
-        if (b == 0) {
-            bit_mask = ~(0x1 << bit_index);
-            *x = (_x) & bit_mask;
-        } else {    /* b == 1 */
-            bit_mask = (0x1 << bit_index);
-            *x = (_x) | bit_mask;
-        }
-    }
-}
-
-uint8_t num2data(uint8_t num)
+uint8_t num2data(uint8_t num, uint8_t dp_on)
 {
     uint8_t display_data;
-    num = num % 10;
+    num = num % 16;
 
     set_bit(&display_data, 7, ssd_table[num].A);
     set_bit(&display_data, 6, ssd_table[num].B);
@@ -266,39 +188,226 @@ uint8_t num2data(uint8_t num)
     set_bit(&display_data, 3, ssd_table[num].E);
     set_bit(&display_data, 2, ssd_table[num].F);
     set_bit(&display_data, 1, ssd_table[num].G);
-    set_bit(&display_data, 0, ssd_table[num].DP);
+
+    if (dp_on) {
+        set_bit(&display_data, 0, 1);
+    } else {
+        set_bit(&display_data, 0, ssd_table[num].DP);
+    }
 
     return display_data;
 
 }
 
-
-int ssd_set(uint8_t dindex, uint8_t num)
+int ssd_set(uint8_t dindex, uint8_t num, uint8_t dp_on)
 {
     uint16_t data;
-    data = (dindex << 8) | num2data(num);
+    data = (dindex << 8) | num2data(num, dp_on);
     hc595_set_data(data);
     return 0;
 }
 
-int thread_ssd_display()
+uint8_t SSD_DATA[5];
+
+uint32_t get_temp()
 {
+    char buf[16] = {0};
+    int tfd = -1;
+    uint32_t temp = 0;
+
+    if (tfd == -1) {
+        if ((tfd = open("/sys/class/thermal/thermal_zone0/temp", O_RDONLY)) == -1) {
+            perror("open");
+            exit(-1);
+        }
+    }
+
+    memset(buf, 0, sizeof(buf));
+
+    read(tfd, buf, sizeof(buf));
+    
+    //printf("read [%s]\r\n", buf);
+    sscanf(buf, "%d", &temp);
+    //printf("temp: %d\r\n", temp);
+
+    return (temp / 100);
+}
+
+int32_t get_ip(uint8_t *ip)
+{
+    uint8_t *p;
+    struct ifreq ifr;
+    static int sock_fd = -1;
+
+    if (sock_fd == -1) {
+        sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    }
+
+
+    strcpy(ifr.ifr_name, "wlan0");
+    if (ioctl(sock_fd, SIOCGIFADDR, &ifr) <  0) {
+        printf("ioctl fail\n");
+        return -1;
+    }
+
+    p = (uint8_t *)&(((struct sockaddr_in*)&(ifr.ifr_addr))->sin_addr);
+
+    printf("ip: %d.%d.%d.%d\n", p[0], p[1], p[2], p[3]);
+
+    memcpy(ip, p, 4);
+
     return 0;
 }
 
-int main() {
+int ssd_display_temp()
+{
+    ssd_set(D1, SSD_DATA[1], 1); /* the 1 is guessed. */
+    ssd_set(D2, SSD_DATA[2], 0);
+    ssd_set(D3, SSD_DATA[3], 0);
+    ssd_set(D4, SSD_DATA[4], 0);
+
+    return 0 ;
+}
+
+int ssd_display_ip()
+{
+
+    /* D1 keep off */
+    ssd_set(D2, SSD_DATA[2], 0);
+    ssd_set(D3, SSD_DATA[3], 0);
+    ssd_set(D4, SSD_DATA[4], 0);
+
+    return 0 ;
+}
+
+int ssd_display_off()
+{
+    hc595_set_data(0xFFFF);
+    return 0;
+}
+
+
+/* 0: show temp; 1: show ip; */
+enum THREAD_TASK_TYPE_E {
+    SHOW_TEMP = 0,
+    SHOW_IP,
+    SHOW_OFF,
+};
+
+uint32_t task_type = SHOW_OFF;
+
+void * thread_ssd_display(void *arg)
+{
+    printf("enter %s-%d\n", __func__, __LINE__);
+
+    while(1) {
+        switch (task_type) {
+            case (SHOW_TEMP):
+                ssd_display_temp();
+                break;
+            case (SHOW_IP):
+                ssd_display_ip();
+                break;
+            case (SHOW_OFF):
+                ssd_display_off();
+                break;
+        }
+    }
+
+    return NULL;
+}
+
+
+void task_display_temp()
+{
+
+    uint32_t temp;
+    uint32_t count = 20;
+
+    task_type = SHOW_TEMP;
+
+    while (count --) {
+
+        temp = get_temp();
+
+        SSD_DATA[1] = temp / 100;
+        SSD_DATA[2] = (temp / 10) % 10;
+        SSD_DATA[3] = temp % 10;
+        SSD_DATA[4] = 0xC;
+
+        usleep(500 * 1000);
+
+    }
+
+
+}
+
+void task_display_ip()
+{
+    uint8_t ip[4];
+
+    task_type = SHOW_IP;
+
+    get_ip(ip);
+
+    SSD_DATA[2] = ip[0] / 100;
+    SSD_DATA[3] = (ip[0] / 10) % 10;
+    SSD_DATA[4] = ip[0] % 10;
+
+    sleep(1);
+
+    SSD_DATA[2] = ip[1] / 100;
+    SSD_DATA[3] = (ip[1] / 10) % 10;
+    SSD_DATA[4] = ip[1] % 10;
+
+    sleep(1);
+
+    SSD_DATA[2] = ip[2] / 100;
+    SSD_DATA[3] = (ip[2] / 10) % 10;
+    SSD_DATA[4] = ip[2] % 10;
+
+    sleep(1);
+
+    SSD_DATA[2] = ip[3] / 100;
+    SSD_DATA[3] = (ip[3] / 10) % 10;
+    SSD_DATA[4] = ip[3] % 10;
+
+    sleep(1);
+
+}
+
+int main() 
+{
+	int r;
+    pthread_t th;
+    uint8_t ip[4];
 
     hc595_init();
 
     printf("%s\r\n", sys_banner);
 
-    //ssd_set_all();
+    if((r = pthread_create(&th, NULL, thread_ssd_display, NULL)) != 0) {
+        printf( "pthread_create fail!\n");
+        return -1;
+    }
+
+
+    //ssd_display_temp(123);
+    //get_temp();
+
+    get_ip(ip);
 
     while (1) {
-        ssd_set(D1, 1);
-        ssd_set(D2, 2);
-        ssd_set(D3, 3);
-        ssd_set(D4, 4);
+        task_display_temp();
+
+        task_display_ip();
+    }
+
+    while (1) {
+        ssd_set(D1, 1, 0);
+        ssd_set(D2, 2, 0);
+        ssd_set(D3, 3, 0);
+        ssd_set(D4, 4, 0);
     }
 
     while(1);
