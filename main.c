@@ -215,11 +215,9 @@ uint32_t get_temp()
     int tfd = -1;
     uint32_t temp = 0;
 
-    if (tfd == -1) {
-        if ((tfd = open("/sys/class/thermal/thermal_zone0/temp", O_RDONLY)) == -1) {
-            perror("open");
-            exit(-1);
-        }
+    if ((tfd = open("/sys/class/thermal/thermal_zone0/temp", O_RDONLY)) == -1) {
+        perror("open");
+        exit(-1);
     }
 
     memset(buf, 0, sizeof(buf));
@@ -230,6 +228,8 @@ uint32_t get_temp()
     sscanf(buf, "%d", &temp);
     //printf("temp: %d\r\n", temp);
 
+    close(tfd);
+
     return (temp / 100);
 }
 
@@ -237,7 +237,7 @@ int32_t get_ip(uint8_t *ip)
 {
     uint8_t *p;
     struct ifreq ifr;
-    static int sock_fd = -1;
+    static int sock_fd = -1;    /* FIXME: close sock_fd */
 
     if (sock_fd == -1) {
         sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -271,10 +271,16 @@ int ssd_display_temp()
 
 int ssd_display_ip()
 {
-
     /* D1 keep off */
-    ssd_set(D2, SSD_DATA[2], 0);
-    ssd_set(D3, SSD_DATA[3], 0);
+
+    if (SSD_DATA[2] != 0) {
+        ssd_set(D2, SSD_DATA[2], 0);
+    }
+
+    if ((SSD_DATA[2] != 0) || SSD_DATA[3] != 0) {
+        ssd_set(D3, SSD_DATA[3], 0);
+    }
+
     ssd_set(D4, SSD_DATA[4], 0);
 
     return 0 ;
@@ -329,6 +335,7 @@ void task_display_temp()
     while (count --) {
 
         temp = get_temp();
+        printf("get_temp: %d\r\n", temp);
 
         SSD_DATA[1] = temp / 100;
         SSD_DATA[2] = (temp / 10) % 10;
