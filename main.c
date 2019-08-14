@@ -77,6 +77,7 @@ uint16_t ssd_data_all;
 
 char sys_banner[] = {"rpi_hat coolingfan system buildtime [" __TIME__ " " __DATE__ "] " "rev 1.0"}; 
 
+#if 0
 void msleep(unsigned int ms)
 {
     int i;
@@ -84,6 +85,16 @@ void msleep(unsigned int ms)
         usleep(i * 1000);
     }
 }
+#endif
+
+void msleep(int ms)
+{
+    struct timeval delay;
+    delay.tv_sec = 0;
+    delay.tv_usec = ms * 1000;
+    select(0, NULL, NULL, NULL, &delay);
+}
+
 
 #define get_bit(x, bit_index) ((x >> bit_index) & 0x1)
 
@@ -259,31 +270,35 @@ int32_t get_ip(uint8_t *ip)
     return 0;
 }
 
-int ssd_display_temp()
+void ssd_display_temp()
 {
     ssd_set(D1, SSD_DATA[1], 1); /* the 1 is guessed. */
+    usleep(1000);
     ssd_set(D2, SSD_DATA[2], 0);
+    usleep(1000);
     ssd_set(D3, SSD_DATA[3], 0);
+    usleep(1000);
     ssd_set(D4, SSD_DATA[4], 0);
-
-    return 0 ;
+    usleep(1000);
 }
 
-int ssd_display_ip()
+void ssd_display_ip()
 {
     /* D1 keep off */
 
     if (SSD_DATA[2] != 0) {
         ssd_set(D2, SSD_DATA[2], 0);
+        usleep(1000);
     }
 
     if ((SSD_DATA[2] != 0) || SSD_DATA[3] != 0) {
         ssd_set(D3, SSD_DATA[3], 0);
+        usleep(1000);
     }
 
     ssd_set(D4, SSD_DATA[4], 0);
+    usleep(1000);
 
-    return 0 ;
 }
 
 int ssd_display_off()
@@ -318,6 +333,9 @@ void * thread_ssd_display(void *arg)
                 ssd_display_off();
                 break;
         }
+
+        //usleep(500);
+        //msleep(1);
     }
 
     return NULL;
