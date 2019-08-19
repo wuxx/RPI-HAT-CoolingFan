@@ -272,14 +272,14 @@ int32_t get_ip(uint8_t *ip)
 
 void ssd_display_temp()
 {
-    ssd_set(D1, SSD_DATA[1], 1); /* the 1 is guessed. */
-    usleep(1000);
-    ssd_set(D2, SSD_DATA[2], 0);
-    usleep(1000);
+    ssd_set(D1, SSD_DATA[1], 0); /* the 1 is guessed. */
+    usleep(4000);
+    ssd_set(D2, SSD_DATA[2], 1);
+    usleep(4000);
     ssd_set(D3, SSD_DATA[3], 0);
-    usleep(1000);
+    usleep(4000);
     ssd_set(D4, SSD_DATA[4], 0);
-    usleep(1000);
+    usleep(4000);
 }
 
 void ssd_display_ip()
@@ -288,16 +288,16 @@ void ssd_display_ip()
 
     if (SSD_DATA[2] != 0) {
         ssd_set(D2, SSD_DATA[2], 0);
-        usleep(1000);
+        usleep(4000);
     }
 
     if ((SSD_DATA[2] != 0) || SSD_DATA[3] != 0) {
         ssd_set(D3, SSD_DATA[3], 0);
-        usleep(1000);
+        usleep(4000);
     }
 
     ssd_set(D4, SSD_DATA[4], 0);
-    usleep(1000);
+    usleep(4000);
 
 }
 
@@ -334,6 +334,7 @@ void * thread_ssd_display(void *arg)
                 break;
         }
 
+        //usleep(1000);
         //usleep(500);
         //msleep(1);
     }
