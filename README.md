@@ -17,11 +17,15 @@
 
 # 使用步骤
 仓库目录下文件如下：  
+```
 pi@raspberrypi:~/oss/RPI-HAT-CoolingFan $ ls  
 coolingfan-daemon  LICENSE  main.c  main.o  Makefile  README.md  
+```
 只需将可执行文件coolingfan-daemon拷贝至系统启动脚本中，即可实现开机自动运行。  
 推荐加至如下位置：  
+```
 /etc/xdg/lxsession/LXDE-pi/sshpwd.sh  
+```
 举例如下：  
 ```
 #!/bin/bash
@@ -30,7 +34,7 @@ export TEXTDOMAIN=pprompt
 
 . gettext.sh
 
-`/home/pi/oss/RPI-HAT-CoolingFan/coolingfan-daemon`
+/home/pi/oss/RPI-HAT-CoolingFan/coolingfan-daemon
 
 if [ -e /run/sshwarn ] ; then
     zenity --warning --width=400 --text="$(gettext "SSH is enabled and the default password for the 'pi' user has not been changed.\n\nThis is a security risk - please login as the 'pi' user and run Raspberry Pi Configuration to set a new password.")"
