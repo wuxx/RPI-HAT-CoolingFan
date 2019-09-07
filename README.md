@@ -21,7 +21,7 @@
 pi@raspberrypi:~/oss/RPI-HAT-CoolingFan $ ls  
 coolingfan-daemon  LICENSE  main.c  main.o  Makefile  README.md  
 ```
-只需将可执行文件coolingfan-daemon拷贝至系统启动脚本中，即可实现开机自动运行。  
+只需将可执行文件**coolingfan-daemon**拷贝至系统启动脚本中，即可实现开机自动运行。  
 推荐加至如下位置：  
 ```
 /etc/xdg/lxsession/LXDE-pi/sshpwd.sh  
