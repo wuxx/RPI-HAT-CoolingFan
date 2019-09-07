@@ -16,6 +16,11 @@
 
 #include <wiringPi.h>
 
+/* 
+   how to test:
+   stress --cpu 8 --io 4 --vm 2 --vm-bytes 128M --timeout 1000s
+*/
+
 /* gpio config */
 #define HC595_RCLK  (28)
 #define HC595_CLK   (27)
