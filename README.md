@@ -1,6 +1,4 @@
 # RPI-HAT-CoolingFan
-# RPI-HAT-CoolingFan
-
 * [产品介绍](#产品介绍) 
 * [产品特点](#产品特点)
 * [使用步骤](#使用步骤)
@@ -18,13 +16,14 @@
 - 软件开源，可根据自己需求修改参数
 
 # 使用步骤
-仓库目录下文件如下：
-pi@raspberrypi:~/oss/RPI-HAT-CoolingFan $ ls
-coolingfan-daemon  LICENSE  main.c  main.o  Makefile  README.md
-只需将可执行文件coolingfan-daemon拷贝至系统启动脚本中，即可实现开机自动运行。
-推荐加至如下位置：
-/etc/xdg/lxsession/LXDE-pi/sshpwd.sh
-举例如下：
+仓库目录下文件如下：  
+pi@raspberrypi:~/oss/RPI-HAT-CoolingFan $ ls  
+coolingfan-daemon  LICENSE  main.c  main.o  Makefile  README.md  
+只需将可执行文件coolingfan-daemon拷贝至系统启动脚本中，即可实现开机自动运行。  
+推荐加至如下位置：  
+/etc/xdg/lxsession/LXDE-pi/sshpwd.sh  
+举例如下：  
+```
 #!/bin/bash
 
 export TEXTDOMAIN=pprompt
@@ -36,6 +35,10 @@ export TEXTDOMAIN=pprompt
 if [ -e /run/sshwarn ] ; then
     zenity --warning --width=400 --text="$(gettext "SSH is enabled and the default password for the 'pi' user has not been changed.\n\nThis is a security risk - please login as the 'pi' user and run Raspberry Pi Configuration to set a new password.")"
 fi
+```
+
+# 产品链接
+[树莓派扩展板-散热风扇](https://item.taobao.com/item.htm?spm=a1z10.1-c-s.w4004-21349689053.3.4f8d20f8MryK8Q&id=596673065140)
 
 # FAQ
 
