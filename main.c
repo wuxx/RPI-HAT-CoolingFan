@@ -21,6 +21,10 @@
 #define HC595_CLK   (27)
 #define HC595_SER   (29)
 
+#define FAN_CTRL    (25)
+
+#define TEMP_TH    (500) /* 50C */
+
 /* seven segment digital display */
 /* common negative */
 
@@ -172,8 +176,6 @@ int hc595_set_data(uint16_t data)
 int8_t hc595_init()
 {
 
-    wiringPiSetup();
-
     pinMode(HC595_RCLK, OUTPUT);
     pinMode(HC595_CLK,  OUTPUT);
     pinMode(HC595_SER,  OUTPUT);
@@ -182,6 +184,25 @@ int8_t hc595_init()
     hc595_set_rclk(0);
     hc595_set_clk(0);
     hc595_set_ser(0);
+
+    return 0;
+}
+
+void fan_on()
+{
+    digitalWrite(FAN_CTRL, HIGH);
+}
+
+void fan_off()
+{
+    digitalWrite(FAN_CTRL, LOW);
+}
+
+int8_t fan_init()
+{
+
+    pinMode(FAN_CTRL, OUTPUT);
+    fan_off();
 
     return 0;
 }
@@ -346,22 +367,47 @@ void * thread_ssd_display(void *arg)
 void task_display_temp()
 {
 
-    uint32_t temp;
+    static uint32_t curr_temp, last_temp;
+
+    static uint32_t on_count, off_count;
+
     uint32_t count = 20;
 
     task_type = SHOW_TEMP;
 
     while (count --) {
 
-        temp = get_temp();
-        printf("get_temp: %d\r\n", temp);
+        last_temp = curr_temp;
 
-        SSD_DATA[1] = temp / 100;
-        SSD_DATA[2] = (temp / 10) % 10;
-        SSD_DATA[3] = temp % 10;
+        curr_temp = get_temp();
+        printf("get_temp: %d\r\n", curr_temp);
+
+        SSD_DATA[1] = curr_temp / 100;
+        SSD_DATA[2] = (curr_temp / 10) % 10;
+        SSD_DATA[3] = curr_temp % 10;
         SSD_DATA[4] = 0xC;
 
         usleep(500 * 1000);
+
+        if ((curr_temp > TEMP_TH) && (last_temp > TEMP_TH)) {
+            on_count++;
+            off_count = 0;
+        } else if ((curr_temp <= TEMP_TH) && (last_temp <= TEMP_TH)) {
+            off_count++;
+            on_count = 0;
+        }
+
+        printf("on_count: %d; off_count: %d\n", on_count, off_count);
+
+        if (on_count > 20) {
+            fan_on();
+            on_count = 0;
+        }
+
+        if (off_count > 20) {
+            fan_off();
+            off_count = 0;
+        }
 
     }
 
@@ -408,7 +454,9 @@ int main()
     pthread_t th;
     uint8_t ip[4];
 
+    wiringPiSetup();
     hc595_init();
+    fan_init();
 
     printf("%s\r\n", sys_banner);
 
