@@ -19,7 +19,7 @@
 # 使用步骤
 仓库目录下文件如下：  
 ```
-pi@raspberrypi:~/oss/RPI-HAT-CoolingFan $ ls  
+pi@raspberrypi:~/oss/RPI-HAT-CoolingFan/software $ ls  
 coolingfan-daemon  LICENSE  main.c  main.o  Makefile  README.md  
 ```
 只需将可执行文件**coolingfan-daemon**拷贝至系统启动脚本中，即可实现开机自动运行。  
