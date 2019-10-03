@@ -43,7 +43,7 @@ fi
 ```
 
 # 产品链接
-[树莓派扩展板-散热风扇](https://item.taobao.com/item.htm?spm=a1z10.1-c-s.w4004-21349689053.3.4f8d20f8MryK8Q&id=596673065140)
+[树莓派扩展板-散热风扇](https://item.taobao.com/item.htm?spm=a1z10.3-c.w4002-21293878338.29.2c28773dLWvBjw&id=604376760205)
 
 # FAQ
 
